@@ -69,3 +69,7 @@ epsilon_rate =
   |> elem(0)
 
 IO.puts(epsilon_rate * gamma_rate)
+
+# Post - mortem #
+# I wanted to essentially make the list completely flat, then construct a new list using that list (every nth element), sum those and determine
+# if they were greater than half the length of the list (given modulo 2 = 0) else greater than or equal to. That would determine the final bit, which could be used for power consumption calc.
