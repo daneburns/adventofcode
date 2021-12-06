@@ -17,22 +17,41 @@ defmodule Vents do
     # given a list of inputs only return ones that are horizontal and vertical
   end
 
+  def make_pairs([x..y, z]) do
+    Enum.into(x..y, [])
+    |> Enum.intersperse(z)
+    |> Enum.chunk_every(2)
+    |> Enum.map(fn
+      [single] -> [single, z]
+      [single, double] -> [single, double]
+    end)
+  end
+
+  def make_pairs([z, x..y]) do
+    Enum.into(x..y, [])
+    |> Enum.intersperse(z)
+    |> Enum.chunk_every(2)
+    |> Enum.map(fn
+      [single] -> [z, single]
+      [single, double] -> [double, single]
+    end)
+  end
+
   def expand_range(four_tuple) do
     {x1, y1, x2, y2} = four_tuple
-    four_tuple
 
-    # [Enum.map(x1..x2, fn x -> x end), Enum.map(y1..y2, fn x -> x end)]
-    # |> Enum.filter(&is_list/1)
-    # |> List.flatten()
+    list =
+      cond do
+        x2 - x1 == 0 -> [x1, y1..y2]
+        y2 - y1 == 0 -> [x1..x2, y1]
+      end
   end
 
   def count_intersects(input) do
     input
-    |> List.flatten()
     |> Enum.frequencies()
-    |> IO.inspect()
     |> Enum.filter(fn {x, y} -> y >= 2 end)
-    |> IO.inspect()
+    |> Enum.count()
   end
 
   def assemble_lines(input) do
@@ -44,7 +63,7 @@ defmodule Vents do
 end
 
 File.cwd!()
-|> Path.join("test_input.txt")
+|> Path.join("input.txt")
 |> File.read!()
 |> String.split("\r\n", trim: true)
 |> Enum.flat_map(&String.split(&1, " -> ", trim: true))
@@ -58,8 +77,6 @@ File.cwd!()
 |> Vents.assemble_lines()
 |> Vents.only_orthogonal()
 |> Enum.map(&Vents.expand_range(&1))
-|> IO.inspect()
-
-# |> Vents.count_intersects()
-# |> Enum.count()
-# |> IO.puts()
+|> Enum.flat_map(&Vents.make_pairs(&1))
+|> Vents.count_intersects()
+|> IO.puts()
