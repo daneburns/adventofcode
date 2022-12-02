@@ -95,8 +95,6 @@ solution_two =
   input
   |> Enum.map(fn x -> Game.play_second_game(x) end)
   |> Enum.map(fn x -> Game.play_game(x) end)
-  |> IO.inspect()
   |> Enum.reduce(%{player_one: 0, player_two: 0}, fn {x, y}, acc ->
     %{player_one: acc.player_one + x, player_two: acc.player_two + y}
   end)
-  |> IO.inspect()
