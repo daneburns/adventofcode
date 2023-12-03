@@ -4,78 +4,106 @@ defmodule Solution do
     |> String.split("\n", trim: true)
   end
 
-  def is_symbol?(char), do: if(char !== ".", do: true, else: false)
+  defp is_symbol?(char) when char in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"], do: false
+  defp is_symbol?(nil), do: false
+  defp is_symbol?("."), do: false
+  defp is_symbol?(<<_char>>), do: true
 
-  def parse(input) do
-    indexed = Enum.with_index(input)
-    valid_part_number(indexed)
+  def find_valid(input) do
+    line_length = Enum.at(input, 0) |> String.length()
+    joined = Enum.join(input)
+
+    pattern = ~r'\d{1,3}'
+
+    Regex.scan(pattern, joined, return: :index)
+    |> Enum.map(fn x ->
+      find_positions(x, line_length, joined |> String.split("", trim: true))
+    end)
+    |> Enum.map(fn x -> if is_valid?(x), do: String.to_integer(x.part_number), else: nil end)
+    |> Enum.filter(fn x -> !is_nil(x) end)
   end
 
-  def valid_part_number(indexed) do
-    Enum.flat_map(indexed, fn x -> positions(x, indexed) end)
-    |> Enum.map(fn x -> if is_valid?(x), do: String.to_integer(x.part_number), else: [] end)
-    |> List.flatten()
-
-    # |> Enum.filter(fn x -> !is_nil(x) end)
-    # |> Enum.map(fn x -> String.to_integer(x) end)
-    # |> IO.inspect()
-  end
-
-  def is_valid?(position) do
-    left = is_symbol?(position.left)
-    right = is_symbol?(position.right)
-
-    top =
-      if !is_nil(position.top),
-        do:
-          String.split(position.top, "", trim: true)
-          |> IO.inspect()
-          |> Enum.map(fn x -> is_symbol?(x) end)
-          |> IO.inspect()
-
-    bottom =
-      if !is_nil(position.bottom),
-        do: String.split(position.bottom, "", trim: true) |> Enum.any?(fn x -> is_symbol?(x) end)
-
-    IO.inspect(position)
-    IO.inspect([top, left, right, bottom])
-    Enum.any?([top, left, right, bottom])
-  end
-
-  def positions(x, indexed) do
-    {value, index} = x
-    above = if index - 1 >= 0, do: Enum.at(indexed, index - 1) |> elem(0), else: nil
-    below = if index < length(indexed) - 1, do: Enum.at(indexed, index + 1) |> elem(0), else: nil
-
-    pattern = ~r'\d+'
-
-    Regex.scan(pattern, value, return: :index)
-    |> Enum.map(&get_positions(&1, above, below, value))
-  end
-
-  def get_positions(match, above, below, string) do
+  def find_positions(match, line_length, joined) do
     [{index, length}] = match
+    part_number = Enum.slice(joined, index, length)
 
-    part_number = String.slice(string, index, length)
-
-    left = if index > 0, do: String.slice(string, index - 1, 1), else: nil
+    top = fetch_top(part_number, index, length, joined, line_length)
+    bottom = fetch_bottom(part_number, index, length, joined, line_length)
+    left = if rem(index, line_length) !== 0, do: safe_fetch(joined, index - 1), else: nil
 
     right =
-      if index + length < String.length(string),
-        do: String.slice(string, index + length, 1),
+      if rem(index + length, line_length) !== 0, do: safe_fetch(joined, index + length), else: nil
+
+    corners = fetch_corners({index, length}, joined, line_length)
+
+    %{
+      part_number: part_number |> Enum.join(),
+      top: top,
+      bottom: bottom,
+      left: left,
+      right: right,
+      corners: corners
+    }
+  end
+
+  def is_valid?(x) do
+    symbols =
+      Map.values(x)
+      |> List.flatten()
+      |> Enum.filter(fn x -> !is_nil(x) end)
+      |> Enum.filter(fn x ->
+        parsed = Integer.parse(x)
+        if parsed == :error, do: true, else: false
+      end)
+      |> Enum.any?(fn x -> is_symbol?(x) end)
+  end
+
+  def fetch_corners({index, lngth}, joined, line_length) do
+    top_left =
+      if rem(index, line_length) !== 0, do: safe_fetch(joined, index - line_length - 1), else: nil
+
+    top_right =
+      if rem(index + lngth, line_length) !== 0,
+        do: safe_fetch(joined, index + lngth - line_length),
         else: nil
 
-    top_offset = if is_nil(left) or is_nil(right), do: 1, else: 0
+    bottom_left =
+      if rem(index, line_length) !== 0, do: safe_fetch(joined, index + line_length - 1), else: nil
 
-    top =
-      if !is_nil(above),
-        do: String.slice(above, index - top_offset, length + 2 - top_offset),
+    bottom_right =
+      if rem(index + lngth, line_length) !== 0,
+        do: safe_fetch(joined, index + lngth + line_length),
         else: nil
 
-    bottom = if !is_nil(below), do: String.slice(below, index - 1, length + 2), else: nil
+    [top_left, top_right, bottom_left, bottom_right]
+  end
 
-    %{part_number: part_number, left: left, right: right, top: top, bottom: bottom}
+  def fetch_top(part_number, index, length, joined, line_length) do
+    part_number = Enum.with_index(part_number)
+
+    Enum.map(part_number, fn {x, y} ->
+      safe_fetch(joined, index + y - line_length)
+    end)
+  end
+
+  def fetch_bottom(part_number, index, length, joined, line_length) do
+    part_number = Enum.with_index(part_number)
+
+    Enum.map(part_number, fn {x, y} ->
+      safe_fetch(joined, index + y + line_length)
+    end)
+  end
+
+  def safe_fetch(list, index) when is_integer(index) do
+    if index >= 0 and index < length(list) do
+      Enum.at(list, index)
+    else
+      nil
+    end
   end
 end
 
-Solution.parse_input("./input.txt") |> Solution.parse() |> Enum.sum() |> IO.inspect()
+one =
+  Solution.parse_input("./input.txt")
+  |> Solution.find_valid()
+  |> Enum.sum()
