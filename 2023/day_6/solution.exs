@@ -18,7 +18,6 @@ defmodule Solution do
 
     numbers =
       Enum.map(holds, fn hold ->
-        difference = distance - hold
         remaining_time = time - hold
         total = remaining_time * hold
       end)
