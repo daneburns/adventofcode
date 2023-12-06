@@ -9,16 +9,6 @@ defmodule Solution do
     end)
   end
 
-  def parse_two(path) do
-    File.read!(path)
-    |> String.split("\n", trim: true)
-    |> Enum.map(fn x ->
-      Regex.split(~r"\d+", x, include_captures: true)
-      |> Enum.filter(fn x -> if Integer.parse(x) !== :error, do: true, else: false end)
-      |> Enum.map(fn x -> String.to_integer(x) end)
-    end)
-  end
-
   def zip([time, distance]) do
     Enum.zip(time, distance)
   end
@@ -44,7 +34,7 @@ one =
   |> Enum.reduce(fn x, acc -> x * acc end)
 
 two =
-  Solution.parse_two("./input.txt")
+  Solution.parse_input("./input.txt")
   |> Enum.map(fn x -> Enum.join(x) end)
   |> Enum.map(fn x -> [String.to_integer(x)] end)
   |> Solution.zip()
