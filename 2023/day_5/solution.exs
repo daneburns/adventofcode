@@ -36,15 +36,14 @@ defmodule Solution do
 
   def find_corresponding(seed_number, map, corr \\ %{}) do
     corr = if !Map.has_key?(corr, "seed"), do: Map.put(corr, "seed", seed_number), else: corr
-
     [head | tail] = map
     [name | ranges] = head
     name = name |> String.split("-") |> Enum.at(2) |> String.split(" ") |> Enum.at(0)
 
     correct_map =
       Enum.filter(ranges |> List.flatten(), fn range ->
-        Range.new(range.destination, range.destination + range.length)
-        |> Enum.find(fn x -> x == seed_number end)
+        new_range = Range.new(range.source, range.source + range.length)
+        seed_number in new_range
       end)
 
     if length(correct_map) > 0 do
@@ -52,7 +51,7 @@ defmodule Solution do
 
       val = correct_map.destination - correct_map.source
 
-      new_number = (seed_number + val) |> IO.inspect()
+      new_number = seed_number + val
       find_corresponding(new_number, tail, Map.put(corr, name, new_number))
     else
       find_corresponding(seed_number, tail, Map.put(corr, name, seed_number))
@@ -62,6 +61,14 @@ defmodule Solution do
   def find_numbers(input) do
     Enum.map(input.seeds, fn x -> find_corresponding(x, input.map) end)
   end
+
+  def get_lowest_location(input) do
+    Enum.map(input, fn x -> x["location"] end) |> Enum.min()
+  end
 end
 
-one = Solution.parse_input("./test.txt") |> Solution.find_numbers() |> IO.inspect()
+one =
+  Solution.parse_input("./input.txt")
+  |> Solution.find_numbers()
+  |> Solution.get_lowest_location()
+  |> IO.inspect()
